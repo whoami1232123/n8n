@@ -1,4 +1,4 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const fs = require('fs');
@@ -8,7 +8,7 @@ const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 
-// Express Setup for Web Dashboard
+// Express Setup
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
@@ -25,7 +25,7 @@ let stats = {
 let logs = [];
 const maxLogs = 100;
 
-// Custom console.log to capture logs
+// Custom console.log
 const originalLog = console.log;
 console.log = (...args) => {
   const message = args.join(' ');
@@ -42,6 +42,7 @@ console.log = (...args) => {
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let readyToReply = false;
 
+// WhatsApp Client with Railway-optimized Puppeteer config
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
@@ -53,28 +54,11 @@ const client = new Client({
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
+      '--single-process',
       '--disable-gpu'
-    ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium'
-  },
+    ]
+  }
 });
-```
-
----
-
-## Steps to Fix:
-
-1. **Go to your GitHub repository**
-2. **Create `nixpacks.toml`** file with the content above
-3. **Update the Puppeteer config** in `index.js`
-4. **Commit changes**
-5. **Go back to Railway and click "Restart"**
-
----
-
-## Your Dashboard URL (Save This!) 📱
-```
-https://n8n-production-8c5d.up.railway.app
 
 client.on('qr', (qr) => {
   console.log('🔒 QR Code generated');
@@ -83,7 +67,7 @@ client.on('qr', (qr) => {
 });
 
 client.on('ready', () => {
-  console.log('✅ The bot is ready to use!');
+  console.log('✅ Bot is ready!');
   readyToReply = true;
   io.emit('status', { ready: true, authenticated: true });
 });
@@ -100,9 +84,10 @@ client.on('message', async (message) => {
 
     let data = {
       from: message.from,
-      messageType: message.type,
+      messageType: message.type
     };
 
+    // Handle voice messages
     if (message.type === 'ptt' || message.type === 'audio') {
       console.log('🎤 Voice message received');
       const media = await message.downloadMedia();
@@ -133,9 +118,11 @@ client.on('message', async (message) => {
         fs.unlinkSync(filepath);
         await handleReply(message, response);
       }
-    } else if (message.type === 'chat' && typeof message.body === 'string') {
+    } 
+    // Handle text messages
+    else if (message.type === 'chat' && typeof message.body === 'string') {
       data.body = message.body;
-      console.log('💬 Text message:', message.body.substring(0, 50));
+      console.log('💬 Text:', message.body.substring(0, 50));
 
       const response = await axios.post(
         'https://hushedly-unexorbitant-rayford.ngrok-free.dev/webhook-test/58e3dda4-39fa-4ce1-adf4-b32e833f052d',
@@ -168,7 +155,7 @@ async function handleReply(message, response) {
   }
 
   if (typeof replyText === 'string' && replyText.trim() !== '') {
-    const randomDelay = Math.floor(Math.random() * (4000 - 2000 + 1)) + 2000;
+    const randomDelay = Math.floor(Math.random() * 2001) + 2000;
     await delay(randomDelay);
     await client.sendMessage(message.from, replyText);
     stats.repliesSent++;
@@ -177,12 +164,12 @@ async function handleReply(message, response) {
 }
 
 client.on('auth_failure', () => {
-  console.error('❌ Authentication failed!');
+  console.error('❌ Auth failed');
   io.emit('status', { ready: false, authenticated: false });
 });
 
 client.on('authenticated', () => {
-  console.log('✅ Authenticated successfully!');
+  console.log('✅ Authenticated');
   io.emit('status', { ready: false, authenticated: true });
 });
 
@@ -192,8 +179,7 @@ app.get('/', (req, res) => {
   const hours = Math.floor(uptime / 3600);
   const minutes = Math.floor((uptime % 3600) / 60);
   
-  res.send(`
-<!DOCTYPE html>
+  res.send(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -299,7 +285,6 @@ app.get('/', (req, res) => {
       </div>
       <p style="color: #6b7280;">Uptime: <span id="uptime">${hours}h ${minutes}m</span></p>
     </div>
-
     <div class="card">
       <h2 style="margin-bottom: 16px;">📊 Statistics</h2>
       <div class="stats-grid">
@@ -317,23 +302,19 @@ app.get('/', (req, res) => {
         </div>
       </div>
     </div>
-
     <div class="card">
       <h2 style="margin-bottom: 16px;">⚙️ Controls</h2>
       <div class="buttons">
         <button class="btn-success" onclick="location.reload()">🔄 Refresh</button>
         <button class="btn-primary" onclick="clearLogs()">🗑️ Clear Logs</button>
-        <button class="btn-danger" onclick="stopBot()">⛔ Stop Bot</button>
       </div>
     </div>
-
     <div class="card">
       <h2 style="margin-bottom: 16px;">📝 Live Logs</h2>
       <div class="logs" id="logs">
         ${logs.map(log => `<div class="log-entry">${log}</div>`).join('')}
       </div>
     </div>
-
     <div class="card" id="qr-section" style="display: none;">
       <h2 style="margin-bottom: 16px;">📱 Scan QR Code</h2>
       <div class="qr-container">
@@ -341,11 +322,9 @@ app.get('/', (req, res) => {
       </div>
     </div>
   </div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    
     socket.on('log', (log) => {
       const logsDiv = document.getElementById('logs');
       const entry = document.createElement('div');
@@ -354,43 +333,26 @@ app.get('/', (req, res) => {
       logsDiv.appendChild(entry);
       logsDiv.scrollTop = logsDiv.scrollHeight;
     });
-
     socket.on('stats', (stats) => {
       document.getElementById('received').textContent = stats.messagesReceived;
       document.getElementById('sent').textContent = stats.repliesSent;
       document.getElementById('errors').textContent = stats.errors;
     });
-
     socket.on('status', (status) => {
       const statusText = document.getElementById('status-text');
-      if (status.ready) {
-        statusText.textContent = 'Running ✅';
-      } else if (status.authenticated) {
-        statusText.textContent = 'Authenticated 🔐';
-      } else {
-        statusText.textContent = 'Connecting...';
-      }
+      if (status.ready) statusText.textContent = 'Running ✅';
+      else if (status.authenticated) statusText.textContent = 'Authenticated 🔐';
+      else statusText.textContent = 'Connecting...';
     });
-
     socket.on('qr', (qr) => {
       const qrSection = document.getElementById('qr-section');
       const qrImage = document.getElementById('qr-image');
       qrSection.style.display = 'block';
       qrImage.src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qr);
     });
-
     function clearLogs() {
       document.getElementById('logs').innerHTML = '';
     }
-
-    function stopBot() {
-      if (confirm('Are you sure you want to stop the bot?')) {
-        fetch('/api/stop', { method: 'POST' })
-          .then(r => r.json())
-          .then(data => alert(data.message));
-      }
-    }
-
     setInterval(() => {
       fetch('/api/stats')
         .then(r => r.json())
@@ -403,18 +365,11 @@ app.get('/', (req, res) => {
     }, 60000);
   </script>
 </body>
-</html>
-  `);
+</html>`);
 });
 
 app.get('/api/stats', (req, res) => {
   res.json({ ...stats, logs });
-});
-
-app.post('/api/stop', (req, res) => {
-  console.log('🛑 Bot stop requested');
-  res.json({ message: 'Bot stopping...' });
-  setTimeout(() => process.exit(0), 1000);
 });
 
 const PORT = process.env.PORT || 3000;
