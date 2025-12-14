@@ -46,9 +46,35 @@ const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu'
+    ],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium'
   },
 });
+```
+
+---
+
+## Steps to Fix:
+
+1. **Go to your GitHub repository**
+2. **Create `nixpacks.toml`** file with the content above
+3. **Update the Puppeteer config** in `index.js`
+4. **Commit changes**
+5. **Go back to Railway and click "Restart"**
+
+---
+
+## Your Dashboard URL (Save This!) 📱
+```
+https://n8n-production-8c5d.up.railway.app
 
 client.on('qr', (qr) => {
   console.log('🔒 QR Code generated');
